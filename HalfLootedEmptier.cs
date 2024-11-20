@@ -11,7 +11,7 @@ using UnityEngine;
 namespace Oxide.Plugins
 {
     [Info("Half Looted Emptier", "VisEntities", "1.0.0")]
-    [Description(" ")]
+    [Description("Empties loot containers that players leave half-looted.")]
     public class HalfLootedEmptier : RustPlugin
     {
         #region Fields
