@@ -6,11 +6,10 @@
 
 using Newtonsoft.Json;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Half Looted Emptier", "VisEntities", "1.0.0")]
+    [Info("Half Looted Emptier", "VisEntities", "1.0.1")]
     [Description("Empties loot containers that players leave half-looted.")]
     public class HalfLootedEmptier : RustPlugin
     {
@@ -172,7 +171,7 @@ namespace Oxide.Plugins
                     if (_config.RemoveItemsInsteadOfDropping)
                         lootContainer.inventory.Clear();
                     else
-                        DropUtil.DropItems(lootContainer.inventory, lootContainer.GetDropPosition() + new Vector3(0f, 0.5f, 0f));
+                        DropUtil.DropItems(lootContainer.inventory, lootContainer.GetDropPosition());
 
                     lootContainer.Kill(BaseNetworkable.DestroyMode.Gib);
                     _containerEmptyingTimers.Remove(containerId);
