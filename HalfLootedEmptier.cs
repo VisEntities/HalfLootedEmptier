@@ -5,11 +5,12 @@
  */
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System.Collections.Generic;
 
 namespace Oxide.Plugins
 {
-    [Info("Half Looted Emptier", "VisEntities", "1.0.1")]
+    [Info("Half Looted Emptier", "VisEntities", "1.1.0")]
     [Description("Empties loot containers that players leave half-looted.")]
     public class HalfLootedEmptier : RustPlugin
     {
@@ -28,9 +29,13 @@ namespace Oxide.Plugins
         {
             [JsonProperty("Version")]
             public string Version { get; set; }
-            
-            [JsonProperty("Number Of Unlooted Items For Container Emptying")]
-            public int NumberOfUnlootedItemsForContainerEmptying { get; set; }
+
+            [JsonProperty("Emptying Trigger Mode")]
+            [JsonConverter(typeof(StringEnumConverter))]
+            public EmptyingTriggerMode EmptyingTriggerMode { get; set; }
+
+            [JsonProperty("Number Of Items To Trigger Emptying")]
+            public int NumberOfItemsToTriggerEmptying { get; set; }
 
             [JsonProperty("Delay Before Emptying Container Seconds")]
             public float DelayBeforeEmptyingContainerSeconds { get; set; }
@@ -69,6 +74,12 @@ namespace Oxide.Plugins
             if (string.Compare(_config.Version, "1.0.0") < 0)
                 _config = defaultConfig;
 
+            if (string.Compare(_config.Version, "1.1.0") < 0)
+            {
+                _config.EmptyingTriggerMode = defaultConfig.EmptyingTriggerMode;
+                _config.NumberOfItemsToTriggerEmptying = defaultConfig.NumberOfItemsToTriggerEmptying;
+            }
+
             PrintWarning("Config update complete! Updated from version " + _config.Version + " to " + Version.ToString());
             _config.Version = Version.ToString();
         }
@@ -78,7 +89,8 @@ namespace Oxide.Plugins
             return new Configuration
             {
                 Version = Version.ToString(),
-                NumberOfUnlootedItemsForContainerEmptying = 1,
+                EmptyingTriggerMode = EmptyingTriggerMode.Looted,
+                NumberOfItemsToTriggerEmptying = 1,
                 DelayBeforeEmptyingContainerSeconds = 30f,
                 RemoveItemsInsteadOfDropping = false
             };
@@ -122,7 +134,7 @@ namespace Oxide.Plugins
         }
 
         private void OnLootEntityEnd(BasePlayer player, LootContainer lootContainer)
-        {   
+        {
             if (player == null || lootContainer == null || lootContainer.net == null)
                 return;
 
@@ -134,34 +146,20 @@ namespace Oxide.Plugins
             if (remainingItems == null)
                 return;
 
-            bool hasLeftoverItems = false;
-
-            foreach (Item remainingItem in remainingItems)
+            bool triggerEmpty = false;
+            if (_config.EmptyingTriggerMode == EmptyingTriggerMode.Looted)
             {
-                if (remainingItem == null || remainingItem.info == null)
-                    continue;
-
-                bool isOriginal = false;
-                foreach (Item originalItem in originalItems)
-                {
-                    if (originalItem == null || originalItem.info == null)
-                        continue;
-
-                    if (remainingItem.info.shortname == originalItem.info.shortname && remainingItem.amount <= originalItem.amount)
-                    {
-                        isOriginal = true;
-                        break;
-                    }
-                }
-
-                if (!isOriginal)
-                {
-                    hasLeftoverItems = true;
-                    break;
-                }
+                int lootedCount = originalItems.Count - remainingItems.Count;
+                if (lootedCount >= _config.NumberOfItemsToTriggerEmptying)
+                    triggerEmpty = true;
+            }
+            else
+            {
+                if (remainingItems.Count > 0 && remainingItems.Count <= _config.NumberOfItemsToTriggerEmptying)
+                    triggerEmpty = true;
             }
 
-            if (hasLeftoverItems || (remainingItems.Count > 0 && remainingItems.Count <= _config.NumberOfUnlootedItemsForContainerEmptying))
+            if (triggerEmpty)
             {
                 _containerEmptyingTimers[containerId] = timer.Once(_config.DelayBeforeEmptyingContainerSeconds, () =>
                 {
@@ -201,5 +199,15 @@ namespace Oxide.Plugins
         }
 
         #endregion Oxide Hooks
+
+        #region Enums
+        
+        public enum EmptyingTriggerMode
+        {
+            Remaining,
+            Looted
+        }
+
+        #endregion Enums
     }
 }
