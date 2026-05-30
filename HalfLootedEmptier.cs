@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 namespace Oxide.Plugins
 {
-    [Info("Half Looted Emptier", "VisEntities", "1.2.0")]
+    [Info("Half Looted Emptier", "VisEntities", "1.3.0")]
     [Description("Empties loot containers that players leave half-looted.")]
     public class HalfLootedEmptier : RustPlugin
     {
@@ -37,6 +37,9 @@ namespace Oxide.Plugins
 
             [JsonProperty("Empty When At Most This Many Items Remain (0 = off)")]
             public int EmptyWhenAtMostThisManyItemsRemain { get; set; }
+
+            [JsonProperty("Empty Even When Nothing Was Looted (container opened but untouched)")]
+            public bool EmptyEvenWhenNothingWasLooted { get; set; }
 
             [JsonProperty("Delay Before Emptying After Looting Stops (seconds)")]
             public float DelayBeforeEmptyingAfterLootingStops { get; set; }
@@ -95,6 +98,7 @@ namespace Oxide.Plugins
                 Version = Version.ToString(),
                 EmptyAfterAtLeastThisManyItemsAreLooted = 1,
                 EmptyWhenAtMostThisManyItemsRemain = 0,
+                EmptyEvenWhenNothingWasLooted = false,
                 DelayBeforeEmptyingAfterLootingStops = 30f,
                 RemoveItemsInsteadOfDropping = false,
                 DestroyWholeJunkpileInsteadOfJustTheLootedContainer = false,
@@ -165,6 +169,9 @@ namespace Oxide.Plugins
                 triggerEmpty = true;
 
             if (_config.EmptyWhenAtMostThisManyItemsRemain > 0 && remainingItems.Count > 0 && remainingItems.Count <= _config.EmptyWhenAtMostThisManyItemsRemain)
+                triggerEmpty = true;
+
+            if (_config.EmptyEvenWhenNothingWasLooted)
                 triggerEmpty = true;
 
             if (triggerEmpty)
